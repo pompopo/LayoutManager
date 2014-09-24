@@ -34,7 +34,7 @@ class ViewController: UIViewController {
 
     override func traitCollectionDidChange(previousTraitCollection: UITraitCollection) {
         super.traitCollectionDidChange(previousTraitCollection);
-        self.manager?.layout(self.traitCollection)
+        self.manager?.layout()
     }
 
 

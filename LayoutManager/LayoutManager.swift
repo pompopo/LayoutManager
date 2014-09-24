@@ -69,6 +69,10 @@ class LayoutManager: NSObject {
         hierarchy[view]![size]!.append(constraint)
     }
     
+    func layout() {
+        layout(self.owner.traitCollection)
+    }
+    
     func layout(trait: UITraitCollection) {
         let targetSize: SizeClassPair = SizeClassPair(horizontal: trait.horizontalSizeClass, vertical: trait.verticalSizeClass)
 
@@ -107,6 +111,7 @@ class LayoutManager: NSObject {
     
     private func makeConstraintsWithLayoutParam(param: LayoutParam, view:UIView) -> [NSLayoutConstraint] {
         var result:[NSLayoutConstraint] = []
+
         for key in param.keys {
             if key == .Width || key == .Height {
                 result.append(NSLayoutConstraint(item: view,
