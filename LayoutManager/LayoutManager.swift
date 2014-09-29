@@ -7,7 +7,9 @@
 //
 
 import UIKit
-
+enum LayoutType {
+    case Parent, Vertical, Horizontal
+}
 func ==(lhs: SizeClassPair, rhs: SizeClassPair) -> Bool {
     return lhs.horizontal == rhs.horizontal && lhs.vertical == rhs.vertical
 }
@@ -46,14 +48,21 @@ typealias LayoutParam = Dictionary<NSLayoutAttribute, CGFloat>
 
 class LayoutManager: NSObject {
     var hierarchy2 = [(UIView, SizeClassPair, LayoutParam)]()
-    var owner:UIView
+    let owner:UIView
+    let type:LayoutType
     init(view: UIView) {
         owner = view;
+        type = .Parent
+    }
+    
+    init(view: UIView, type: LayoutType) {
+        owner = view
+        self.type = type
     }
     
     func addView(view: UIView!, size: SizeClassPair!, layout: LayoutParam!) {
         view.setTranslatesAutoresizingMaskIntoConstraints(false)
-        let constraints = makeConstraintsWithLayoutParam(layout, view: view)
+        let constraints = makeConstraintsWithLayoutParam(layout, view: view, size: size)
         hierarchy2.append((view, size, layout))
 
     }
@@ -66,11 +75,11 @@ class LayoutManager: NSObject {
         }
 
         
-        for (view, _, param) in hierarchy2.filter({(_, size, _) in return targetSize.contains(size)}) {
+        for (view, _, param) in rulesContainSize(targetSize) {
             if view.superview == nil {
                 self.owner.addSubview(view)
             }
-            let constraints:[NSLayoutConstraint] = makeConstraintsWithLayoutParam(param, view: view)
+            let constraints:[NSLayoutConstraint] = makeConstraintsWithLayoutParam(param, view: view, size: targetSize)
             for constraint in constraints {
                 if constraint.secondItem == nil {
                     view.addConstraint(constraint)
@@ -81,8 +90,14 @@ class LayoutManager: NSObject {
         }
     }
 
+    private func rulesContainSize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
+        return hierarchy2.filter({(_, size, _) in return currentSize.contains(size)})
+    }
+    private func rulesContainedBySize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
+        return hierarchy2.filter({(_, size, _) in return size.contains(currentSize)})
+    }
     
-    private func makeConstraintsWithLayoutParam(param: LayoutParam, view:UIView) -> [NSLayoutConstraint] {
+    private func makeConstraintsWithLayoutParam(param: LayoutParam, view:UIView, size:SizeClassPair) -> [NSLayoutConstraint] {
         var result:[NSLayoutConstraint] = []
 
         for key in param.keys {
@@ -96,15 +111,41 @@ class LayoutManager: NSObject {
                     multiplier: 1.0,
                     constant: param[key]!)
             } else {
-                constraint = NSLayoutConstraint(item: view,
-                    attribute: key,
-                    relatedBy: NSLayoutRelation.Equal,
-                    toItem: owner,
-                    attribute: key,
-                    multiplier: 1.0,
-                    constant: param[key]!)
+                if (key == .Top && type == .Vertical) || (key == .Left && type == .Horizontal) {
+                    let rule:(UIView, SizeClassPair, LayoutParam)? = rulesContainedBySize(size).last
+                    var previousView:UIView? = nil
+                    if rule == nil || rule!.0 == view {
+                        previousView = owner
+                    } else {
+                        previousView = rule!.0
+                    }
+                    var attr:NSLayoutAttribute
+                    if previousView == owner {
+                        attr = key
+                    } else if key == .Top {
+                        attr = .Bottom
+                    } else {
+                        attr = .Right
+                    }
+
+                    constraint = NSLayoutConstraint(item: view,
+                        attribute: key,
+                        relatedBy: NSLayoutRelation.Equal,
+                        toItem: previousView,
+                        attribute: attr,
+                        multiplier: 1.0,
+                        constant: param[key]!)
+                } else {
+                    constraint = NSLayoutConstraint(item: view,
+                        attribute: key,
+                        relatedBy: NSLayoutRelation.Equal,
+                        toItem: owner,
+                        attribute: key,
+                        multiplier: 1.0,
+                        constant: param[key]!)
+                }
             }
-            constraint.identifier = "com.gmail.pompopo.LayoutManager"
+
             result.append(constraint)
         }
         return result
