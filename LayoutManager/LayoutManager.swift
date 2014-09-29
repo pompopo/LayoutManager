@@ -78,11 +78,19 @@ class LayoutManager: NSObject {
             view.removeFromSuperview()
         }
 
+
+        var previousView:UIView = owner
+        var currentView:UIView = owner
         for (view, _, param) in rulesContainSize(targetSize) {
             if view.superview == nil {
                 self.owner.addSubview(view)
             }
-            let constraints:[NSLayoutConstraint] = constraintsWithLayoutParam(param, view: view, size: targetSize)
+            if view != currentView {
+                previousView = currentView
+            }
+            let constraints:[NSLayoutConstraint] = constraintsWithLayoutParam(param, view: view, size: targetSize, previousView: previousView)
+            currentView = view
+
             for constraint in constraints {
                 if constraint.secondItem == nil {
                     view.addConstraint(constraint)
@@ -100,8 +108,8 @@ class LayoutManager: NSObject {
     private func rulesContainedBySize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
         return hierarchy.filter({(_, size, _) in return size.contains(currentSize)})
     }
-    
-    private func constraintsWithLayoutParam(param: LayoutParam, view:UIView, size:SizeClassPair) -> [NSLayoutConstraint] {
+
+    private func constraintsWithLayoutParam(param: LayoutParam, view:UIView, size:SizeClassPair, previousView:UIView?) -> [NSLayoutConstraint] {
         var result:[NSLayoutConstraint] = []
 
         for key in param.keys {
@@ -116,20 +124,15 @@ class LayoutManager: NSObject {
                     constant: param[key]!)
             } else {
                 if (key == .Top && type == .Vertical) || (key == .Left && type == .Horizontal) {
-                    let rule:Rule? = rulesContainedBySize(size).last
-                    var previousView:UIView? = nil
-                    if rule == nil || rule!.0 == view {
-                        previousView = owner
-                    } else {
-                        previousView = rule!.0
-                    }
                     var attr:NSLayoutAttribute
                     if previousView == owner {
                         attr = key
-                    } else if key == .Top {
+                    } else if key == .Top && type == .Vertical {
                         attr = .Bottom
-                    } else {
+                    } else if key == .Left && type == .Horizontal {
                         attr = .Right
+                    } else {
+                        attr = key
                     }
 
                     constraint = NSLayoutConstraint(item: view,
