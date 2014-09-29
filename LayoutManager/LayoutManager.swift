@@ -51,6 +51,7 @@ class LayoutManager: NSObject {
     var hierarchy = [Rule]()
     let owner:UIView
     let type:LayoutType
+    
     init(view: UIView) {
         owner = view;
         type = .Parent
@@ -59,6 +60,10 @@ class LayoutManager: NSObject {
     init(view: UIView, type: LayoutType) {
         owner = view
         self.type = type
+    }
+    
+    func addView(view: UIView, layout: LayoutParam) {
+        addView(view, size: SizeClassPair.anySize(), layout: layout)
     }
     
     func addView(view: UIView!, size: SizeClassPair!, layout: LayoutParam!) {
@@ -91,6 +96,7 @@ class LayoutManager: NSObject {
     private func rulesContainSize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
         return hierarchy.filter({(_, size, _) in return currentSize.contains(size)})
     }
+    
     private func rulesContainedBySize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
         return hierarchy.filter({(_, size, _) in return size.contains(currentSize)})
     }
