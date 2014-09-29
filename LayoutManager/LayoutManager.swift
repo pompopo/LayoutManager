@@ -45,9 +45,10 @@ struct SizeClassPair : Hashable {
 }
 
 typealias LayoutParam = Dictionary<NSLayoutAttribute, CGFloat>
+typealias Rule = (UIView, SizeClassPair, LayoutParam)
 
 class LayoutManager: NSObject {
-    var hierarchy2 = [(UIView, SizeClassPair, LayoutParam)]()
+    var hierarchy = [Rule]()
     let owner:UIView
     let type:LayoutType
     init(view: UIView) {
@@ -62,9 +63,7 @@ class LayoutManager: NSObject {
     
     func addView(view: UIView!, size: SizeClassPair!, layout: LayoutParam!) {
         view.setTranslatesAutoresizingMaskIntoConstraints(false)
-        let constraints = makeConstraintsWithLayoutParam(layout, view: view, size: size)
-        hierarchy2.append((view, size, layout))
-
+        hierarchy.append(Rule(view, size, layout))
     }
 
     func layout() {
@@ -74,12 +73,11 @@ class LayoutManager: NSObject {
             view.removeFromSuperview()
         }
 
-        
         for (view, _, param) in rulesContainSize(targetSize) {
             if view.superview == nil {
                 self.owner.addSubview(view)
             }
-            let constraints:[NSLayoutConstraint] = makeConstraintsWithLayoutParam(param, view: view, size: targetSize)
+            let constraints:[NSLayoutConstraint] = constraintsWithLayoutParam(param, view: view, size: targetSize)
             for constraint in constraints {
                 if constraint.secondItem == nil {
                     view.addConstraint(constraint)
@@ -91,13 +89,13 @@ class LayoutManager: NSObject {
     }
 
     private func rulesContainSize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
-        return hierarchy2.filter({(_, size, _) in return currentSize.contains(size)})
+        return hierarchy.filter({(_, size, _) in return currentSize.contains(size)})
     }
     private func rulesContainedBySize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
-        return hierarchy2.filter({(_, size, _) in return size.contains(currentSize)})
+        return hierarchy.filter({(_, size, _) in return size.contains(currentSize)})
     }
     
-    private func makeConstraintsWithLayoutParam(param: LayoutParam, view:UIView, size:SizeClassPair) -> [NSLayoutConstraint] {
+    private func constraintsWithLayoutParam(param: LayoutParam, view:UIView, size:SizeClassPair) -> [NSLayoutConstraint] {
         var result:[NSLayoutConstraint] = []
 
         for key in param.keys {
@@ -112,7 +110,7 @@ class LayoutManager: NSObject {
                     constant: param[key]!)
             } else {
                 if (key == .Top && type == .Vertical) || (key == .Left && type == .Horizontal) {
-                    let rule:(UIView, SizeClassPair, LayoutParam)? = rulesContainedBySize(size).last
+                    let rule:Rule? = rulesContainedBySize(size).last
                     var previousView:UIView? = nil
                     if rule == nil || rule!.0 == view {
                         previousView = owner
