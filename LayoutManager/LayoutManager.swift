@@ -52,21 +52,13 @@ class LayoutManager: NSObject {
     private let owner:UIView
     private let type:LayoutType
     private var subManagers:[LayoutManager] = [LayoutManager]()
-    init(view: UIView) {
-        owner = view;
-        type = .Parent
-    }
     
-    init(view: UIView, type: LayoutType) {
+    init(view: UIView, type: LayoutType = .Parent) {
         owner = view
         self.type = type
     }
     
-    func addView(view: UIView, layout: LayoutParam) {
-        addView(view, size: SizeClassPair.anySize(), layout: layout)
-    }
-    
-    func addView(view: UIView!, size: SizeClassPair!, layout: LayoutParam!) {
+    func addView(view: UIView, size: SizeClassPair = SizeClassPair.anySize(), layout: LayoutParam!) {
         view.setTranslatesAutoresizingMaskIntoConstraints(false)
         hierarchy.append(Rule(view, size, layout))
     }
@@ -109,6 +101,7 @@ class LayoutManager: NSObject {
         }
     }
 
+    // MARK: private methods
     private func rulesContainSize(currentSize: SizeClassPair) -> [(UIView, SizeClassPair, LayoutParam)] {
         return hierarchy.filter({(_, size, _) in return currentSize.contains(size)})
     }
