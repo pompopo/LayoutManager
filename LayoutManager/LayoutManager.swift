@@ -48,10 +48,10 @@ typealias LayoutParam = Dictionary<NSLayoutAttribute, CGFloat>
 typealias Rule = (UIView, SizeClassPair, LayoutParam)
 
 class LayoutManager: NSObject {
-    var hierarchy = [Rule]()
-    let owner:UIView
-    let type:LayoutType
-    
+    private var hierarchy = [Rule]()
+    private let owner:UIView
+    private let type:LayoutType
+    private var subManagers:[LayoutManager] = [LayoutManager]()
     init(view: UIView) {
         owner = view;
         type = .Parent
@@ -69,6 +69,10 @@ class LayoutManager: NSObject {
     func addView(view: UIView!, size: SizeClassPair!, layout: LayoutParam!) {
         view.setTranslatesAutoresizingMaskIntoConstraints(false)
         hierarchy.append(Rule(view, size, layout))
+    }
+    
+    func addManager(manager:LayoutManager) {
+        subManagers.append(manager)
     }
 
     func layout() {
@@ -98,6 +102,10 @@ class LayoutManager: NSObject {
                     owner.addConstraint(constraint)
                 }
             }
+        }
+        
+        for manager in subManagers {
+            manager.layout()
         }
     }
 
